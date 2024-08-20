@@ -23,10 +23,12 @@ The idea is based on the following scheme:
 
 In this way we can provide many interesting new flavour to classic opinion dynamics, modeling stubborn agents, external input, expression dynamic and joint dynamic of expression and opinion starting from the following ODEs system fixing a vector of initial private opinions $x_0$ and an initial coboundary map $\delta_0$:
 
+$$
 \begin{cases}
     \frac{dx}{dt} = -\alpha \delta^T\delta x_0 \\
     \frac{d \delta}{dt} = -\beta \Pi_G(\delta xx^T)
 \end{cases}
+$$
 
 
 
