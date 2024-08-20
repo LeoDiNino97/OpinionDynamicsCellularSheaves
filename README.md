@@ -25,8 +25,10 @@ In this way we can provide many interesting new flavour to classic opinion dynam
 
 $$
 \begin{cases}
-    \frac{dx}{dt} = -\alpha \delta^T\delta x_0 \\
-    \frac{d \delta}{dt} = -\beta \Pi_G(\delta xx^T)
+    \frac{dx}{dt} = -\alpha \delta^T\delta x \\
+    \frac{d \delta}{dt} = -\beta \Pi_G(\delta xx^T)\\
+    x(0) = x_0 \\
+    \delta(0) = \delta_0
 \end{cases}
 $$
 
