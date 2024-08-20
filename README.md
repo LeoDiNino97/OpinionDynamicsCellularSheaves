@@ -16,7 +16,7 @@ $$C^0(G,\mathcal{F}) = \bigoplus_{v \in V} \mathcal{F}_v$$
 
 $$C^1(G,\mathcal{F}) = \bigoplus_{e \in E} \mathcal{F}_e$$
 
-The idea is based on the following scheme:
+The idea is based on the following scheme over a network of agents:
 + Private-opinion expressions are modeled as 0-cochains: $x \in C^0(G,\mathcal{F})$: in particular, each node stalk is the space of each agents' private opinions;
 + Joint-opinion expressions over edges are modeled as 1-cochain: $\xi \in C^1(G,\mathcal{F})$: in particular, edge stalks are the spaces where pair-wise communications between agents lead to shared opinions;
 + Restriction maps are the way agents express their opinion from their private basis to the shared one.
