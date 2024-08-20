@@ -1,5 +1,6 @@
 This repository contains aims at realizing a Python package to reproduce the models proposed in [Opinion dynamics over discourse sheaves](https://arxiv.org/pdf/2005.12798). 
 In this paper Jacob Hansen and Robert Ghrist used graph cellular sheaf as a very expressive framework subsuming opinion dynamics via Laplacian heat diffusion equation in a new way.
+
 Considering a graph $G(V,E)$, a cellular sheaf $\mathcal{F}$ on a graph is made up of
 + A vectorial space $\mathcal{F}_v$ for each node $v \in V$,
 + A vectorial space $\mathcal{F}_e$ for each edge $e \in E$,
