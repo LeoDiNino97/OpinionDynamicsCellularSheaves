@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import null_space
 
-class GCSBuilder:
+class SheafBuilder:
     
     def __init__(
             self, 
