@@ -132,7 +132,7 @@ class SheafBuilder:
             }
 
             for node in nodes[:self.V]:
-                maps[(node, stubborn_parents[node])][node] = gamma * np.eye(d)
+                maps[(node, stubborn_parents[node])][node] = gamma * np.eye(self.d)
                 maps[(node, stubborn_parents[node])][stubborn_parents[node]] = gamma * np.eye(self.d)
 
             B = np.zeros((self.d*len(self.edges), self.d*len(nodes)))

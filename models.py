@@ -48,9 +48,9 @@ class SheafDynamic:
             self.B[agent*d:(agent+1)*d, agent*d:(agent+1)*d] = np.eye(self.d)
 
         # Define the observation matrix C to be the identity supported on C0(Y;F)
-        C = np.zeros_like(self.L_f)
+        self.C = np.zeros_like(self.L_f)
         for agent in Y:
-            C[agent*d:(agent+1)*d, agent*d:(agent+1)*d] = np.eye(self.d)
+            self.C[agent*d:(agent+1)*d, agent*d:(agent+1)*d] = np.eye(self.d)
 
         # Initial private opinion 
         self.x0 = x0
