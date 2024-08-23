@@ -25,8 +25,9 @@ In this way we can provide many interesting new flavour to classic opinion dynam
 
 $$
 \begin{cases}
-    \frac{dx}{dt} = -\alpha \delta^T\delta x \\
+    \frac{dx}{dt} = -\alpha \Pi_A(\delta^T\delta x) + Bu \\
     \frac{d \delta}{dt} = -\beta \Pi_G(\delta xx^T)\\
+    \frac{dy}{dt} = Cx \\
     x(0) = x_0 \\
     \delta(0) = \delta_0
 \end{cases}
