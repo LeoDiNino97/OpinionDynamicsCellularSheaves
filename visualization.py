@@ -8,7 +8,7 @@ def opinion_trajectory_plot(
         V,
         global_section = None):
     
-    n_cols = V // 2 if V % 2 == 0 else V // 2 + 1
+    n_cols = len(V) // 2 if len(V) % 2 == 0 else len(V) // 2 + 1
     fig, axs = plt.subplots(2, n_cols, figsize=(15, 5))
 
     topics = {

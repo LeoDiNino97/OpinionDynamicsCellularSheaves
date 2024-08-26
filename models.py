@@ -14,8 +14,8 @@ class SheafDynamic:
             x0,
             T = 100,
             timespan = 100,
-            U = None,
-            Y = None,
+            U = [],
+            Y = [],
         ):
 
         # Structure of the sheaf
@@ -93,7 +93,7 @@ class SheafDynamic:
             [0, self.T], 
             self.x0, 
             t_eval=self.time_points, 
-            args=(self.PU, self.L_f, self.alpha),
+            args=(),
             method='RK45'
             )
         

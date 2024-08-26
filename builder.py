@@ -44,7 +44,7 @@ class SheafBuilder:
         self.A = np.zeros((self.V,self.V))
 
         for i in range(self.V):
-            for j in range(i, self.V):
+            for j in range(i + 1, self.V):
                 
                 self.A[i,j] = np.linalg.norm(points[i,:] - points[j,:]) <= self.cutoff
                 self.A[j,i] = np.linalg.norm(points[i,:] - points[j,:]) <= self.cutoff
