@@ -140,14 +140,14 @@ class SheafDynamic:
             [0, self.T], 
             self.B0.flatten(), 
             t_eval=self.time_points, 
-            args=(self.beta,),
+            args=(),
             method='RK45'
             )
         
         B_hat = solution.y[:,-1].reshape(self.E*self.d, self.V*self.d)
         
         # Tracker of the disagreement 
-        Bs = solution.y.T.reshape(self.timepoints.shape[0], self.E*self.d, self.V*self.d)
+        Bs = solution.y.T.reshape(self.time_points.shape[0], self.E*self.d, self.V*self.d)
         disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
 
         return B_hat, disagreement

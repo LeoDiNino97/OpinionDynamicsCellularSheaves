@@ -169,6 +169,7 @@ class SheafBuilder:
         x0 = np.random.randn(self.d * int(len(self.nodes)/2))
         X0[int(len(self.nodes)/2)*self.d:] = x0
         X0[0:int(len(self.nodes)/2)*self.d] = x0
+        
         return X0
     
     def null_space_projector(
