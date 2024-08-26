@@ -159,6 +159,18 @@ class SheafBuilder:
         else:
             print('The original sheaf has already been augmented!')
 
+    def augmented_initial_state(
+            self
+    ):
+        if not self.augmented: 
+            return('The sheaf must be augmented before generating such an initial opinion distribution!')
+        
+        X0 = np.zeros(self.d * len(self.nodes))
+        x0 = np.random.randn(self.d * int(len(self.nodes)/2))
+        X0[int(len(self.nodes)/2)*self.d:] = x0
+        X0[0:int(len(self.nodes)/2)*self.d] = x0
+        return X0
+    
     def null_space_projector(
             self, 
             x

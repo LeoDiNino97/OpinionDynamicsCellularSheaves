@@ -9,7 +9,7 @@ def opinion_trajectory_plot(
         global_section = None):
     
     n_cols = len(V) // 2 if len(V) % 2 == 0 else len(V) // 2 + 1
-    fig, axs = plt.subplots(2, n_cols, figsize=(15, 5))
+    fig, axs = plt.subplots(2, n_cols, figsize=(20, 10))
 
     topics = {
         i:chr(65 + i) for i in range(d)
@@ -37,15 +37,18 @@ def opinion_trajectory_plot(
                     ax.axhline(y=global_section[i*d+j], 
                                color='r', 
                                linestyle='--', 
+                               linewidth = 0.3, 
                                label='Projection of $x_0$ on sheaf laplacian null space')
                 else:
                     ax.axhline(y=global_section[i*d+j], 
                                color='r', 
+                               linewidth = 0.3, 
                                linestyle='--')
                     
             ax.set_title(f'Opinion dynamic of agent {i}')
         
         ax.set_ylim(y_min, y_max)  # Set the same y-axis limits for all subplots
+    axs[-1, -1].axis('off')
 
     handles, labels = axs[0,0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='center', bbox_to_anchor=(0.85, 0.25))

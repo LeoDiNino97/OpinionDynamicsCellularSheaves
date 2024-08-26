@@ -120,7 +120,7 @@ class SheafDynamic:
             [0, self.T], 
             state_0, 
             t_eval=self.time_points, 
-            args=(u, self.B, self.C, self.L_f, self.alpha),
+            args=(u,),
             method='RK45'
         )
         
