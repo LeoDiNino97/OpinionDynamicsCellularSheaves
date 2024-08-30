@@ -11,7 +11,8 @@ class SheafBuilder:
             theta = 0.9,
             constant = True,
             stubborn = None,
-            control = None
+            control = None,
+            seed = 42
             ):
 
         self.V = V
@@ -27,6 +28,9 @@ class SheafBuilder:
         self.stubborn = stubborn
         self.control = control
 
+        # Seed for reproducibility
+        self.seed = seed
+
         # Graph builder
         self.randomGraph()
 
@@ -34,8 +38,10 @@ class SheafBuilder:
         self.GCSbuilder()
 
     def randomGraph(
-            self
+            self, 
         ):
+        if self.seed is not None:
+                np.random.seed(self.seed)
 
         self.edges = []
 
@@ -98,7 +104,9 @@ class SheafBuilder:
         self.L_f = self.B.T @ self.B
 
     def initial_state(self): 
-
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            
         return np.random.randn(self.V*self.d)
 
     def forcing_opinion(self):

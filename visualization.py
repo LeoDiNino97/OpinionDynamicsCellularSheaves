@@ -54,3 +54,61 @@ def opinion_trajectory_plot(
     fig.legend(handles, labels, loc='center', bbox_to_anchor=(0.85, 0.25))
 
     plt.show()
+
+def simplicial_opinion_trajectory_plot(
+        trajectories, 
+        timepoints,
+        d, 
+        edges,
+        global_section = None):
+    
+    n_cols = len(edges) // 2 if len(edges) % 2 == 0 else len(edges) // 2 + 1
+    fig, axs = plt.subplots(2, n_cols, figsize=(20, 10))
+
+    topics = {
+        i:chr(65 + i) for i in range(d)
+    }
+
+    agents = {
+        j:chr(65 + j) for j in range(len(edges))
+    }
+
+    # Determine the global minimum and maximum y-values
+    y_min = float('inf')
+    y_max = float('-inf')
+
+    for i, _ in enumerate(edges):
+        for j in range(d):
+            y_min = min(y_min, min(trajectories[:, i*d+j]))
+            y_max = max(y_max, max(trajectories[:, i*d+j]))
+
+    y_min -= 0.3
+    y_max += 0.3
+
+    for c, _ in enumerate(edges):
+        ax = axs[c//n_cols, c % n_cols]
+        for j in range(d):
+            ax.plot(timepoints, trajectories[:, c*d+j], label=f'Topic {topics[j]}')
+
+            if global_section is not None:
+                if j == 0:
+                    ax.axhline(y=global_section[c*d+j], 
+                               color='r', 
+                               linestyle='--', 
+                               linewidth = 0.7, 
+                               label='Projection of $x_0$ on sheaf laplacian null space')
+                else:
+                    ax.axhline(y=global_section[c*d+j], 
+                               color='r', 
+                               linewidth = 0.7, 
+                               linestyle='--')
+                    
+            ax.set_title(f'Agent {edges[c]}')
+        
+        ax.set_ylim(y_min, y_max)  # Set the same y-axis limits for all subplots
+    #axs[-1, -1].axis('off')
+
+    handles, labels = axs[0,0].get_legend_handles_labels()
+    #fig.legend(handles, labels, loc='center', bbox_to_anchor=(0.85, 0.25))
+
+    plt.show()
