@@ -151,3 +151,83 @@ class SheafDynamic:
         disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
 
         return B_hat, disagreement
+    
+class SimplicialSheafDynamic:
+    def __init__(
+            self, 
+            SC, 
+            alpha, 
+            beta,
+            T = 100,
+            timespan = 100,
+        ):
+
+        # Simplicial sheaf
+        self.SC = SC
+        self.PB_0 = (self.SC.B0 != 0).astype('int32')
+        self.PB_1 = (self.SC.B1.T != 0).astype('int32')
+
+        # Parameter in the dynamics
+        self.alpha = alpha
+        self.beta = beta
+        
+        # Considered timewindow
+        self.T = T
+        self.timespan = timespan 
+        self.time_points = np.linspace(0,self. T, self.timespan)
+
+    ##############################
+    #### METHODS FOR DYNAMICS ####
+    ##############################
+
+    def edgeFlowDynamic(self, t, xi):
+        return -self.alpha * self.SC.L1 @ xi   
+     
+    def solver(
+            self
+        ):
+
+        xi0 = self.SC.initial_edge_flow()
+
+        solution = solve_ivp(
+            self.edgeFlowDynamic, 
+            [0, self.T], 
+            xi0, 
+            t_eval=self.time_points, 
+            args=(),
+            method='RK45'
+            )
+
+        return solution.y.T
+    
+    def expression_dynamic(self, t, B_flatten, xi0):
+
+        B0 = B_flatten[:self.SC.V*self.SC.d + len(self.SC.edges)*self.SC.d].reshape(self.SC.V * self.SC.d, len(self.SC.edges) * self.SC.d)
+        B1 = B_flatten[self.SC.V*self.SC.d + len(self.SC.edges)*self.SC.d:].reshape(len(self.SC.edges)*self.SC.d, len(self.SC.triangles)*self.SC.d)
+        
+        dtdB0 = (-self.beta * self.PB_0 * (B0 @ np.outer(xi0, xi0))).flatten()
+        dtdB1 = (-self.beta * self.PB_1 * (B1.T @ np.outer(xi0, xi0))).flatten()
+
+        return np.concatenate([dtdB0, dtdB1])
+    
+    def expressionDynamicSolver(
+            self
+        ):
+
+        xi0 = self.SC.initial_edge_flow()
+        solution = solve_ivp(
+            self.expression_dynamic, 
+            [0, self.T], 
+            np.concatenate([self.SC.B0.flatten, self.SC.B1.flatten]), 
+            t_eval=self.time_points, 
+            args=(xi0),
+            method='RK45'
+            )
+        
+        B_hat = solution.y[:,-1].reshape(self.E*self.d, self.V*self.d)
+        
+        # Tracker of the disagreement 
+        Bs = solution.y.T.reshape(self.time_points.shape[0], self.E*self.d, self.V*self.d)
+        disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
+
+        return B_hat, disagreement
