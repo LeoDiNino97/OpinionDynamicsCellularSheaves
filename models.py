@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 
+# Class for dynamics over a graph cellular sheaf
+
 class SheafDynamic:
     def __init__(
             self, 
@@ -151,13 +153,16 @@ class SheafDynamic:
         disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
 
         return B_hat, disagreement
-    
+
+# Class for dynamics over a simplicial cellular sheaf
+
 class SimplicialSheafDynamic:
     def __init__(
             self, 
             SC, 
             alpha, 
             beta,
+            gamma,
             T = 100,
             timespan = 100,
         ):
@@ -170,6 +175,7 @@ class SimplicialSheafDynamic:
         # Parameter in the dynamics
         self.alpha = alpha
         self.beta = beta
+        self.gamma = gamma
         
         # Considered timewindow
         self.T = T
@@ -202,11 +208,11 @@ class SimplicialSheafDynamic:
     
     def expression_dynamic(self, t, B_flatten, xi0):
 
-        B0 = B_flatten[:self.SC.V*self.SC.d + len(self.SC.edges)*self.SC.d].reshape(self.SC.V * self.SC.d, len(self.SC.edges) * self.SC.d)
-        B1 = B_flatten[self.SC.V*self.SC.d + len(self.SC.edges)*self.SC.d:].reshape(len(self.SC.edges)*self.SC.d, len(self.SC.triangles)*self.SC.d)
+        B0 = B_flatten[:self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d].reshape(self.SC.V * self.SC.d, len(self.SC.edges) * self.SC.d)
+        B1 = B_flatten[self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d:].reshape(len(self.SC.triangles)*self.SC.d, len(self.SC.edges)*self.SC.d)
         
         dtdB0 = (-self.beta * self.PB_0 * (B0 @ np.outer(xi0, xi0))).flatten()
-        dtdB1 = (-self.beta * self.PB_1 * (B1.T @ np.outer(xi0, xi0))).flatten()
+        dtdB1 = (-self.gamma * self.PB_1 * (B1 @ np.outer(xi0, xi0))).flatten()
 
         return np.concatenate([dtdB0, dtdB1])
     
@@ -218,16 +224,13 @@ class SimplicialSheafDynamic:
         solution = solve_ivp(
             self.expression_dynamic, 
             [0, self.T], 
-            np.concatenate([self.SC.B0.flatten, self.SC.B1.flatten]), 
+            np.concatenate([self.SC.B0.flatten(), self.SC.B1.T.flatten()]), 
             t_eval=self.time_points, 
-            args=(xi0),
+            args=(xi0,),
             method='RK45'
             )
         
-        B_hat = solution.y[:,-1].reshape(self.E*self.d, self.V*self.d)
-        
-        # Tracker of the disagreement 
-        Bs = solution.y.T.reshape(self.time_points.shape[0], self.E*self.d, self.V*self.d)
-        disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
+        B0_traj = solution.y[:self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d,:].T.reshape(self.time_points.shape[0], self.SC.V*self.SC.d, len(self.SC.edges)*self.SC.d)
+        B1T_traj = solution.y[self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d:,:].T.reshape(self.time_points.shape[0], len(self.SC.triangles)*self.SC.d, len(self.SC.edges)*self.SC.d)
 
-        return B_hat, disagreement
+        return xi0, B0_traj, B1T_traj
