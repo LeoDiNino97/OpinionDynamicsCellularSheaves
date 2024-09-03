@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Utilities for visualization 
+
 def opinion_trajectory_plot(
         trajectories, 
         timepoints,
@@ -108,7 +110,7 @@ def simplicial_opinion_trajectory_plot(
         ax.set_ylim(y_min, y_max)  # Set the same y-axis limits for all subplots
     #axs[-1, -1].axis('off')
 
-    handles, labels = axs[0,0].get_legend_handles_labels()
+    #handles, labels = axs[0,0].get_legend_handles_labels()
     #fig.legend(handles, labels, loc='center', bbox_to_anchor=(0.85, 0.25))
 
     plt.show()

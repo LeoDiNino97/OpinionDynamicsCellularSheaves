@@ -3,13 +3,48 @@ from scipy.linalg import null_space
 from itertools import combinations
 
 class SheafBuilder:
+    '''
+    A class for building a cellular sheaf over a graph.
+
+    Parameters:
+        V:int -> number of nodes
+        d:int -> stalks dimension
+        cutoff:float -> threshold for connectivity in the random model chosen for the graph 
+        constant:bool -> boolean for a constant or Guassian-restriction-maps sheaf 
+        stubborn:list -> list of stubborn agents
+        control:list -> list of observation agents for control implementations
+        seed:int -> random seed for reproducibility
     
+    Methods:
+        randomGraph()
+            Builds a graph over a set of points sampled uniformly at random from the unit square 
+            and thresholding their pairwise distance
+
+        GCSbuilder()
+            Builds the coboundary map and the sheaf laplacian of a graph cellular sheaf 
+            over the graph built with randomGraph() method
+
+        inital_state()
+            Outputs a random  distribution of private opinions over the nodes
+
+        forcing_opinion()
+            Outputs a 0-cochain supported over the set of stubborn agents
+
+        augmented_constant_sheaf()
+            Augments the graph underlying the cellular sheaf according to the weighted reluctance construction of the paper
+
+        augmented_initial_state()
+            If the structure has been augmented, outputs an initial state correctly supported over the whole graph 
+            according to the weighted reluctance construction of the paper
+
+        null_space_projector()
+            Project a private opinion distribution over the null-space of the sheaf laplacian
+    '''
     def __init__(
             self, 
             V, 
             d,
             cutoff = 0.5,
-            theta = 0.9,
             constant = True,
             stubborn = None,
             control = None,
@@ -20,9 +55,10 @@ class SheafBuilder:
         self.nodes = list(range(self.V))
         self.d = d
         self.cutoff = cutoff
-        self.theta = theta
 
         self.constant = constant
+
+        # Flag for augmented graph
         self.augmented = False
 
         # Subset of agents for forcing and control in dynamics
@@ -65,7 +101,8 @@ class SheafBuilder:
 
         E = len(self.edges)
 
-        # Incidency linear maps
+        # Incidency linear maps (constant case)
+
         if self.constant == True:
             self.F = {
                 e:{
@@ -73,7 +110,10 @@ class SheafBuilder:
                     e[1]:np.eye(self.d)
                     } 
                     for e in self.edges
-                }               
+                }  
+            
+        # (Gaussian random maps)             
+
         else:
             self.F = {
                 e:{
@@ -99,6 +139,8 @@ class SheafBuilder:
             B_u = self.F[edge][u]
             B_v = self.F[edge][v]
 
+            # The algebraic construction always require an arbitrary orientation of the edges
+
             self.B[i*self.d:(i+1)*self.d, u*self.d:(u+1)*self.d] = B_u           
             self.B[i*self.d:(i+1)*self.d, v*self.d:(v+1)*self.d] = - B_v
 
@@ -119,7 +161,6 @@ class SheafBuilder:
         
         return u
     
-    
     def augmentedConstantSheaf(
             self,
             gamma = 0.1
@@ -127,10 +168,14 @@ class SheafBuilder:
 
         if not self.augmented:
             nodes = list(range(self.V))
-            stubborn_parents = {node: self.V + node for node in nodes}
 
+            # Each agent has a stubborn parent
+
+            stubborn_parents = {node: self.V + node for node in nodes}
             self.edges += [(node, stubborn_parents[node]) for node in nodes]
             nodes += list(stubborn_parents.values())
+
+            # Maps are set to the identity for each connection
 
             maps = {
                 edge : {
@@ -140,9 +185,13 @@ class SheafBuilder:
                 for edge in self.edges
             }
 
+            # Original node and stubborn parents are connected by a weighted identity map
+
             for node in nodes[:self.V]:
                 maps[(node, stubborn_parents[node])][node] = gamma * np.eye(self.d)
                 maps[(node, stubborn_parents[node])][stubborn_parents[node]] = gamma * np.eye(self.d)
+
+            # From now on it is just a construction for a sheaf
 
             B = np.zeros((self.d*len(self.edges), self.d*len(nodes)))
 
@@ -174,6 +223,8 @@ class SheafBuilder:
         if not self.augmented: 
             return('The sheaf must be augmented before generating such an initial opinion distribution!')
         
+        # Initial opinion of agents and stubborn parents are set to be the same
+
         X0 = np.zeros(self.d * len(self.nodes))
         x0 = np.random.randn(self.d * int(len(self.nodes)/2))
         X0[int(len(self.nodes)/2)*self.d:] = x0
@@ -186,6 +237,8 @@ class SheafBuilder:
             x
     ):
         
+        # Retrieve the null space and build the orthogonal projector out of it
+
         null = null_space(self.L_f)
         projector = null @ null.T
         
@@ -193,12 +246,43 @@ class SheafBuilder:
     
 
 class SimplicialSheafBuilder:
+    '''
+    A class for building a cellular sheaf over a 2-simplicial complex.
+
+    Parameters:
+        V:int -> number of nodes
+        d:int -> stalks dimension
+        ntriangles:int -> number of triangles to be filled in the upper laplacian 
+        cutoff:float -> threshold for connectivity in the random model chosen for the graph 
+        seed:int -> random seed for reproducibility
     
+    Methods:
+        randomGraph()
+            Builds a graph over a set of points sampled uniformly at random from the unit square 
+            and thresholding their pairwise distance
+
+        triangleFinder()
+            Finds all 3-cliques in the initialized graph
+
+        random2SC()
+            Select a certain number of triangles from all the 3-cliques
+
+        SCSbuilder()
+            Builds the coboundary maps and the sheaf laplacians of a simplicial cellular sheaf 
+            over the graph built with randomGraph() method augmenting it with a bunch of triangles selected at random
+            from all the cliques via random2SC() method
+
+        initial_vertex_flow()
+            Outputs a random 0-cochains
+
+        initial_edge_flow()
+            Outputs a random 1-cochain
+    '''
     def __init__(
             self, 
             V, 
             d,
-            ntriangles = 'Full',
+            ntriangles,
             cutoff = 0.5,
             seed = 42
             ):

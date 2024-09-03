@@ -4,15 +4,48 @@ from scipy.integrate import solve_ivp
 # Class for dynamics over a graph cellular sheaf
 
 class SheafDynamic:
+    '''
+    A class to implement and solve dynamics over graph cellular sheaves
+
+    Parameters:
+        GCS: SheafBuilder -> An instantiated Graph Cellular Sheaf
+        alpha: float -> Parameter controlling diffusion 
+        beta: float -> Parameter controlling diffusion
+        x0: np.array -> A proper initializiation of private opinion
+        T: int -> Time horizon considered for the trajectories
+        timespan: int -> Number of timepoints considered for the trajectories
+        U: list -> Set of stubborn agents
+        Y: list -> Set of agents to be observed 
+
+    Methods:
+        --DYNAMICS METHODS--
+
+        opinion_dynamic():
+            Basic implementation of a sheaf laplacian diffusion with eventually restriction encoded in self.PU
+
+        forcing_opinion_dynamic():
+            Dynamic based on controller input and a set of observables
+
+        expression_dynamic():
+            "Learning to lie" dynamic
+
+        --SOLVERS-- (They all call solve_ivp method from scipy.integrate)
+
+        privateOpinionDynamicSolver():
+            It solves the dynamic implemented by opinion_dynamic()
+
+        forcingOpinionDynamicSolver():
+            It solves the dynamic implemented by forcing_opinion_dynamic()
+
+        expressionDynamicSolver():
+            It solves the dynamic implemented by expression_dynamic()
+    '''
+
     def __init__(
             self, 
-            L_f, 
-            B0,
+            GCS, 
             alpha, 
             beta, 
-            E, 
-            V, 
-            d, 
             x0,
             T = 100,
             timespan = 100,
@@ -21,13 +54,7 @@ class SheafDynamic:
         ):
 
         # Structure of the sheaf
-        self.E = E
-        self.V = V
-        self.d = d
-
-        # Laplacian and coboundary maps
-        self.L_f = L_f
-        self.B0 = B0
+        self.GCS = GCS
 
         # Parameter in the dynamics
         self.alpha = alpha
@@ -40,21 +67,21 @@ class SheafDynamic:
         # Useful projectors
         self.PU = np.ones_like(x0)
         for i in U:
-            self.PU[i*self.d:(i+1)*self.d] = 0
+            self.PU[i*self.GCS.d:(i+1)*self.GCS.d] = 0
 
-        self.PB = (self.B0 != 0).astype('int32')
+        self.PB = (self.GCS.B != 0).astype('int32')
 
         # Define the forcing matrix B to be the identity supported on C0(U;F)
-        self.B = np.zeros_like(self.L_f)
+        self.B = np.zeros_like(self.GCS.L_f)
         for agent in self.U:
-            self.B[agent*d:(agent+1)*d, agent*d:(agent+1)*d] = np.eye(self.d)
+            self.B[agent*self.GCS.d:(agent+1)*self.GCS.d, agent*self.GCS.d:(agent+1)*self.GCS.d] = np.eye(self.GCS.d)
 
         # Define the observation matrix C to be the identity supported on C0(Y;F)
-        self.C = np.zeros_like(self.L_f)
+        self.C = np.zeros_like(self.GCS.L_f)
         for agent in self.Y:
-            self.C[agent*d:(agent+1)*d, agent*d:(agent+1)*d] = np.eye(self.d)
+            self.C[agent*self.GCS.d:(agent+1)*self.GCS.d, agent*self.GCS.d:(agent+1)*self.GCS.d] = np.eye(self.GCS.d)
 
-        # Initial private opinion 
+        # Initial opinion
         self.x0 = x0
 
         # Considered timewindow
@@ -67,18 +94,18 @@ class SheafDynamic:
     ##############################
 
     def opinion_dynamic(self, t, x):
-        return -self.alpha * self.PU * (self.L_f @ x)
+        return -self.alpha * self.PU * (self.GCS.L_f @ x)
 
     def forcing_opinion_dynamic(self, t, state, u):
-        size = self.L_f.shape[0]
+        size = self.GCS.L_f.shape[0]
         x = state[:size]
-        dxdt = -self.alpha * self.L_f @ x + self.B @ u
+        dxdt = -self.alpha * self.GCS.L_f @ x + self.GCS.B @ u
         dydt = self.C @ x
         return np.concatenate([dxdt, dydt])
 
     def expression_dynamic(self, t, B_flatten):
 
-        B = B_flatten.reshape(self.E * self.d, self.V * self.d)
+        B = B_flatten.reshape(len(self.GCS.edges) * self.GCS.d, self.GCS.V * self.GCS.d)
         dt_dB = -self.beta * self.PB * (B @ np.outer(self.x0, self.x0))
         return dt_dB.flatten()
     
@@ -87,9 +114,9 @@ class SheafDynamic:
     ##############################
         
     def privateOpinionDynamicSolver(
-            self
+            self,
         ):
-
+        
         solution = solve_ivp(
             self.opinion_dynamic, 
             [0, self.T], 
@@ -108,10 +135,10 @@ class SheafDynamic:
 
         x0 = np.array(self.x0).flatten()
         y0 = np.copy(x0)
-        u = np.random.randn(self.V*self.d)
-        for agent in range(self.V):
+        u = np.random.randn(self.GCS.V*self.GCS.d)
+        for agent in range(self.GCS.V):
             if agent not in self.U:
-                u[agent*self.d:(agent+1)*self.d] = 0
+                u[agent*self.GCS.d:(agent+1)*self.GCS.d] = 0
 
         # Combine initial conditions for x and y into one state vector
         state_0 = np.concatenate([x0, y0])
@@ -136,20 +163,19 @@ class SheafDynamic:
             self
         ):
 
-
         solution = solve_ivp(
             self.expression_dynamic, 
             [0, self.T], 
-            self.B0.flatten(), 
+            self.GCS.B.flatten(), 
             t_eval=self.time_points, 
             args=(),
             method='RK45'
             )
         
-        B_hat = solution.y[:,-1].reshape(self.E*self.d, self.V*self.d)
+        B_hat = solution.y[:,-1].reshape(len(self.GCS.edges)*self.GCS.d, self.GCS.V*self.GCS.d)
         
         # Tracker of the disagreement 
-        Bs = solution.y.T.reshape(self.time_points.shape[0], self.E*self.d, self.V*self.d)
+        Bs = solution.y.T.reshape(self.time_points.shape[0], len(self.GCS.edges)*self.GCS.d, self.GCS.V*self.GCS.d)
         disagreement = self.x0.T @ (Bs.transpose(0,2,1) @ Bs.transpose(0,1,2)) @ self.x0
 
         return B_hat, disagreement
@@ -157,6 +183,38 @@ class SheafDynamic:
 # Class for dynamics over a simplicial cellular sheaf
 
 class SimplicialSheafDynamic:
+    '''
+    A class to implement and solve dynamics over simplicial cellular sheaves
+
+    Parameters:
+        SC: SimplicialSheafBuilder -> An instantiated Simplicial Cellular Sheaf
+        alpha: float -> Parameter controlling diffusion 
+        beta: float -> Parameter controlling diffusion
+        gamma: float -> Parameter controlling diffusion
+        T: int -> Time horizon considered for the trajectories
+        timespan: int -> Number of timepoints considered for the trajectories
+
+
+    Methods:
+        --DYNAMICS METHODS--
+
+        edge_flow_dynamic():
+            Basic implementation of a simplicial sheaf laplacian diffusion 
+
+        expression_dynamic():
+            Higher order learning to lie
+
+        --SOLVERS-- (They all call solve_ivp method from scipy.integrate)
+
+        privateOpinionDynamicSolver():
+            It solves the dynamic implemented by opinion_dynamic()
+
+        forcingOpinionDynamicSolver():
+            It solves the dynamic implemented by forcing_opinion_dynamic()
+
+        expressionDynamicSolver():
+            It solves the dynamic implemented by expression_dynamic()
+    '''
     def __init__(
             self, 
             SC, 
@@ -186,17 +244,35 @@ class SimplicialSheafDynamic:
     #### METHODS FOR DYNAMICS ####
     ##############################
 
-    def edgeFlowDynamic(self, t, xi):
+    def edge_flow_dynamic(self, t, xi):
         return -self.alpha * self.SC.L1 @ xi   
      
-    def solver(
+    
+    def expression_dynamic(self, t, B_flatten, xi0):
+
+        # The two matrices are retrieved through proper indexing and reshaping of the concatenated array
+        B0 = B_flatten[:self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d].reshape(self.SC.V * self.SC.d, len(self.SC.edges) * self.SC.d)
+        B1 = B_flatten[self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d:].reshape(len(self.SC.triangles)*self.SC.d, len(self.SC.edges)*self.SC.d)
+        
+        # Expressions of the dynamics
+        dtdB0 = (-self.beta * self.PB_0 * (B0 @ np.outer(xi0, xi0))).flatten()
+        dtdB1 = (-self.gamma * self.PB_1 * (B1 @ np.outer(xi0, xi0))).flatten()
+
+        return np.concatenate([dtdB0, dtdB1])
+    
+    ##############################
+    #### SOLVERS FOR DYNAMICS ####
+    ##############################
+
+    def edge_flow_solver(
             self
         ):
 
+        # Initial edge flow
         xi0 = self.SC.initial_edge_flow()
 
         solution = solve_ivp(
-            self.edgeFlowDynamic, 
+            self.edge_flow_dynamic, 
             [0, self.T], 
             xi0, 
             t_eval=self.time_points, 
@@ -206,17 +282,7 @@ class SimplicialSheafDynamic:
 
         return solution.y.T
     
-    def expression_dynamic(self, t, B_flatten, xi0):
-
-        B0 = B_flatten[:self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d].reshape(self.SC.V * self.SC.d, len(self.SC.edges) * self.SC.d)
-        B1 = B_flatten[self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d:].reshape(len(self.SC.triangles)*self.SC.d, len(self.SC.edges)*self.SC.d)
-        
-        dtdB0 = (-self.beta * self.PB_0 * (B0 @ np.outer(xi0, xi0))).flatten()
-        dtdB1 = (-self.gamma * self.PB_1 * (B1 @ np.outer(xi0, xi0))).flatten()
-
-        return np.concatenate([dtdB0, dtdB1])
-    
-    def expressionDynamicSolver(
+    def expression_dynamic_solver(
             self
         ):
 
@@ -230,6 +296,7 @@ class SimplicialSheafDynamic:
             method='RK45'
             )
         
+        # The trajectories for the lower and upper coboundary maps must be retrieved via proper indexing and reshaping
         B0_traj = solution.y[:self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d,:].T.reshape(self.time_points.shape[0], self.SC.V*self.SC.d, len(self.SC.edges)*self.SC.d)
         B1T_traj = solution.y[self.SC.V*self.SC.d * len(self.SC.edges)*self.SC.d:,:].T.reshape(self.time_points.shape[0], len(self.SC.triangles)*self.SC.d, len(self.SC.edges)*self.SC.d)
 
