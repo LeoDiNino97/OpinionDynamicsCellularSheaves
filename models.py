@@ -206,13 +206,10 @@ class SimplicialSheafDynamic:
 
         --SOLVERS-- (They all call solve_ivp method from scipy.integrate)
 
-        privateOpinionDynamicSolver():
-            It solves the dynamic implemented by opinion_dynamic()
+        edge_flow_solver():
+            It solves the dynamic implemented by edge_flow_dynamic()
 
-        forcingOpinionDynamicSolver():
-            It solves the dynamic implemented by forcing_opinion_dynamic()
-
-        expressionDynamicSolver():
+        expression_dynamic_solver():
             It solves the dynamic implemented by expression_dynamic()
     '''
     def __init__(
